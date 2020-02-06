@@ -49,7 +49,7 @@ class BackgroundIndexFileGenerator:
         self.thread.daemon = True
 
     def _process(self):
-        _create_index_files(self.dir_path)
+        _create_index_files(self.dir_path, skip_hidden_folders=True)
 
     def run(self):
         self.thread.start()
@@ -175,7 +175,7 @@ def _create_index_file(
     # Return the path for cleaning up later
     return index_file_path
 
-def _create_index_files(root_dir, force_no_processing=False):
+def _create_index_files(root_dir, force_no_processing=False, skip_hidden_folders=False):
     """
     Crawl the root directory downwards, generating an index HTML file in each
     directory on the way down.
@@ -194,6 +194,10 @@ def _create_index_files(root_dir, force_no_processing=False):
     # Walk the root dir downwards, creating index files as we go
     for here, dirs, files in os.walk(root_dir):
         print('Processing %s' % here)
+        if skip_hidden_folders:
+            files = [f for f in files if not f[0] == '.']
+            dirs[:] = [d for d in dirs if not d[0] == '.']
+            print('Skipping hidden files and folders.')
         # Sort the subdirectories by name
         dirs = sorted(dirs)
         # Get image files - all files in the directory matching IMAGE_FILE_REGEX
@@ -467,7 +471,7 @@ def serve_dir(dir_path):
     # This time, force no processing - this gives us a fast first-pass in terms
     # of page generation, but potentially slow serving for large image files
     print('Performing first pass index file generation')
-    created_files = _create_index_files(dir_path, True)
+    created_files = _create_index_files(dir_path, True, True)
     if (PIL_ENABLED):
         # If PIL is enabled, we'd like to process the HTML indexes to include
         # generated thumbnails - this slows down generation so we don't do it
